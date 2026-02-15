@@ -8,7 +8,7 @@ from opentrade.agents.base import BaseAgent, MarketState
 
 class StrategyAgent(BaseAgent):
     """策略分析 Agent
-    
+
     负责策略绩效评估、信号生成，
     提供基于策略规则的交易信号。
     """
@@ -102,7 +102,7 @@ class StrategyAgent(BaseAgent):
         # 价格突破均线
         ohlcv = state.ohlcv_1h
         if ohlcv:
-            close = ohlcv.get("close", state.price)
+            _close = ohlcv.get("close", state.price)
             sma_20 = (ohlcv.get("close", 0) * 19 + state.price) / 20  # 简化的 SMA
 
             if state.price > sma_20:

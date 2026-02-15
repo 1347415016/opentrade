@@ -8,7 +8,7 @@ from opentrade.agents.base import BaseAgent, MarketState
 
 class OnChainAgent(BaseAgent):
     """链上数据 Agent
-    
+
     负责链上数据分析，包括资金流向、
     巨鲸行为、稳定币数据等。
     """

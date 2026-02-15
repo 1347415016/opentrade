@@ -9,7 +9,7 @@ from opentrade.core.config import get_config
 
 class RiskAgent(BaseAgent):
     """风险控制 Agent
-    
+
     负责评估交易风险，执行风控规则，
     确保交易在可接受的风险范围内。
     """
@@ -33,7 +33,7 @@ class RiskAgent(BaseAgent):
         daily_loss: float = None,
     ) -> dict:
         """风险分析
-        
+
         Args:
             state: 市场状态
             current_positions: 当前持仓

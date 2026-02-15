@@ -41,7 +41,7 @@ class BacktestResult:
 
 class BacktestService:
     """回测服务
-    
+
     负责策略回测、历史数据模拟、
     性能评估和报告生成。
     """
@@ -339,7 +339,7 @@ class BacktestService:
 </head>
 <body>
     <h1>📊 OpenTrade 回测报告</h1>
-    
+
     <h2>核心指标</h2>
     <div class="metrics">
         <div class="metric">
@@ -369,7 +369,7 @@ class BacktestService:
             <div class="value">{result.profit_factor:.2f}</div>
         </div>
     </div>
-    
+
     <h2>交易记录</h2>
     <table>
         <tr><th>时间</th><th>操作</th><th>价格</th><th>盈亏</th></tr>

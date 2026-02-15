@@ -129,7 +129,7 @@ class Strategy:
 class LifecycleManager:
     """
     策略生命周期管理器
-    
+
     管理策略从创建到淘汰的全流程
     """
 
@@ -205,7 +205,7 @@ class LifecycleManager:
                                   paper_metrics: StrategyMetrics) -> bool:
         """
         完成孵化期
-        
+
         条件:
         - 孵化时间 >= 14天
         - 交易数 >= 20
@@ -243,7 +243,7 @@ class LifecycleManager:
                                    live_metrics: StrategyMetrics) -> bool:
         """
         完成观察期
-        
+
         条件:
         - 观察时间 >= 1个月
         - 模拟-实盘偏差 < 20%
@@ -292,7 +292,7 @@ class LifecycleManager:
                               current_metrics: StrategyMetrics) -> str:
         """
         检查运行中的策略
-        
+
         Returns:
             状态: "ok" / "degraded" / "retired"
         """
@@ -453,7 +453,7 @@ class LifecycleManager:
 class StrategyExperienceStore:
     """
     策略经验存储
-    
+
     将有效策略、失效模式存入向量数据库
     进化时通过 RAG 检索历史经验
     """

@@ -13,7 +13,7 @@ from opentrade.core.config import get_config
 
 class DataService:
     """数据服务
-    
+
     负责获取和管理市场数据，
     包括价格、K线、技术指标等。
     """
@@ -144,7 +144,7 @@ class DataService:
                 "rate": funding.get("fundingRate", 0),
                 "nextTime": funding.get("nextFundingTime"),
             }
-        except:
+        except Exception:
             return {"rate": 0, "nextTime": None}
 
     async def fetch_onchain_data(self, symbol: str) -> dict:
@@ -182,11 +182,11 @@ class DataService:
             return self._default_indicators()
 
         closes = [d["close"] for d in ohlcv]
-        highs = [d["high"] for d in ohlcv]
-        lows = [d["low"] for d in ohlcv]
+        _highs = [d["high"] for d in ohlcv]
+        _lows = [d["low"] for d in ohlcv]
         volumes = [d["volume"] for d in ohlcv]
 
-        latest = ohlcv[-1]
+        _latest = ohlcv[-1]
 
         # EMA
         ema_fast = self._ema(closes, 9)

@@ -21,7 +21,7 @@ from opentrade.models.strategy import (
 
 class StrategyService:
     """策略服务
-    
+
     负责策略的创建、加载、保存、
     版本管理和进化逻辑。
     """

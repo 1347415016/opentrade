@@ -8,8 +8,9 @@ services:
     container_name: opentrade
     restart: unless-stopped
     ports:
-      - "18790:18790"
-      - "3000:3000"
+      - "8000:8000"      # API 服务
+      - "18790:18790"    # WebSocket 网关
+      - "3000:3000"      # Web 面板
     environment:
       - OPENTRADE_MODE=${OPENTRADE_MODE:-paper}
       - OPENTRADE_DB_URL=postgresql+asyncpg://opentrade:password@postgres:5432/opentrade

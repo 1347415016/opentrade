@@ -25,6 +25,7 @@ from pathlib import Path
 
 import typer
 from rich import print
+from rich.console import Console
 from rich.panel import Panel
 from typer import Argument, Option
 
@@ -34,6 +35,7 @@ from opentrade.cli.utils import (
     handle_exceptions,
     setup_logging,
 )
+from opentrade.core.config import OpenTradeConfig
 
 app = typer.Typer(
     name="opentrade",
@@ -82,9 +84,10 @@ def main(
 @app.command()
 def init(
     force: bool = Option(False, "-f", "--force", help="强制重新初始化"),
+    interactive: bool = Option(True, "-i", "--interactive", help="交互式配置"),
 ):
     """初始化 OpenTrade 配置"""
-    from opentrade.core.config import ConfigManager
+    from opentrade.core.config import AIConfig, ExchangeConfig, RiskConfig
 
     config_dir = Path.home() / ".opentrade"
     config_file = config_dir / "config.yaml"
@@ -92,25 +95,111 @@ def init(
     if config_file.exists() and not force:
         print(f"[yellow]配置文件已存在: {config_file}[/yellow]")
         print("使用 [bold]opentrade init --force[/bold] 重新初始化")
+        print("\n编辑现有配置: [bold]opentrade config edit[/bold]")
         raise typer.Exit(1)
 
     # 创建配置目录
     config_dir.mkdir(parents=True, exist_ok=True)
 
-    # 生成默认配置
-    config = ConfigManager.generate_default()
-    config.to_file(config_file)
+    console = Console()
 
-    print(Panel(
-        f"[green]✅ OpenTrade 初始化完成！[/green]\n\n"
-        f"📁 配置文件: {config_file}\n\n"
-        "下一步:\n"
-        "  1. 编辑配置文件: opentrade config edit\n"
-        "  2. 设置交易所 API Key\n"
-        "  3. 启动网关: opentrade gateway\n"
-        "  4. 开始交易: opentrade trade --mode paper",
-        title="OpenTrade",
-        subtitle="初始化成功"
+    # 欢迎信息
+    console.print(Panel(
+        "[bold green]欢迎使用 OpenTrade[/bold green]\n"
+        "开源自主进化 AI 交易系统\n\n"
+        "让我们快速配置您的交易环境",
+        title="OpenTrade 初始化",
+        subtitle="开始配置"
+    ))
+
+    # 系统检查
+    console.print("\n[bold]系统检查...[/bold]")
+
+    # 检查 Python 版本
+    import sys
+    if sys.version_info < (3, 11):
+        console.print(f"[red]不支持 Python {sys.version}，需要 3.11+[/red]")
+        raise typer.Exit(1)
+    console.print(f"[green]Python {sys.version.split()[0]}[/green]")
+
+    # 交互式配置
+    if interactive:
+        console.print("\n[bold]交易所配置[/bold]")
+
+        # 选择交易所
+        exchanges = ["binance", "bybit", "hyperliquid", "okx", "kucoin", "coinbase"]
+        exchange = console.input(
+            f"选择交易所 {', '.join(exchanges)}: "
+        )
+        if exchange not in exchanges:
+            console.print("[yellow]使用默认: binance[/yellow]")
+            exchange = "binance"
+
+        # API 密钥
+        api_key = console.input("API Key (留空稍后填写): ").strip() or None
+        api_secret = console.input("API Secret (留空稍后填写): ").strip() or None
+
+        console.print("\n[bold]AI 模型配置[/bold]")
+
+        # AI 模型选择
+        models = ["deepseek/deepseek-chat", "openai/gpt-4", "anthropic/claude-3-opus"]
+        model = console.input(
+            f"选择模型 {', '.join(models)}: "
+        )
+        if not model.strip():
+            model = "deepseek/deepseek-chat"
+
+        ai_api_key = console.input("AI API Key (留空使用环境变量): ").strip() or None
+
+        console.print("\n[bold]风险偏好[/bold]")
+
+        # 风险等级
+        risk_levels = ["low", "medium", "high"]
+        risk_level = console.input(
+            f"风险等级 {', '.join(risk_levels)}: "
+        )
+        if risk_level not in risk_levels:
+            risk_level = "medium"
+
+        # 生成配置
+        config = OpenTradeConfig(
+            exchange=ExchangeConfig(
+                name=exchange,
+                api_key=api_key,
+                api_secret=api_secret,
+            ),
+            ai=AIConfig(
+                model=model,
+                api_key=ai_api_key,
+            ),
+            risk=RiskConfig(
+                risk_level=risk_level,
+                max_position_pct=0.1 if risk_level == "low" else (0.2 if risk_level == "medium" else 0.3),
+                max_leverage=2.0 if risk_level == "low" else (3.0 if risk_level == "medium" else 5.0),
+            ),
+        )
+    else:
+        # 非交互模式：使用默认值
+        config = OpenTradeConfig()
+
+    # 保存配置
+    config.to_file(config_file)
+    console.print(f"\n[green]配置已保存: {config_file}[/green]")
+
+    # 下一步提示
+    console.print(Panel(
+        "[bold]下一步操作:[/bold]\n\n"
+        "1. 编辑配置文件，填入完整的 API Key:\n"
+        "   opentrade config edit\n\n"
+        "2. 检查依赖:\n"
+        "   pip install -e \".[dev]\"\n\n"
+        "3. 启动网关服务:\n"
+        "   opentrade gateway\n\n"
+        "4. 开始模拟交易:\n"
+        "   opentrade trade paper\n\n"
+        "文档: https://docs.opentrade.ai",
+        title="初始化完成",
+        subtitle="准备开始交易"
     ))
 
 

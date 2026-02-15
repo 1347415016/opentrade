@@ -61,7 +61,7 @@ class MarketData:
 class BacktestEngine:
     """
     回测引擎 - 与实盘同引擎
-    
+
     特点:
     1. 使用与实盘完全相同的策略代码
     2. 前视偏差检测
@@ -95,7 +95,7 @@ class BacktestEngine:
                   record_full_history: bool = False) -> dict:
         """
         运行回测
-        
+
         Args:
             data: 市场数据
             start_date/end_date: 日期范围
@@ -152,7 +152,7 @@ class BacktestEngine:
     def _generate_signal_with_check(self, data: MarketData) -> dict | None:
         """
         生成信号 - 带前视偏差检测
-        
+
         这是回测引擎与实盘的核心差异点:
         - 实盘使用已完成的数据
         - 回测需要确保不"偷看"未来
@@ -165,7 +165,7 @@ class BacktestEngine:
 
         # 检测: 如果策略使用了未来数据，触发违规
         # 方案: 记录当前索引，验证后续不会使用未来数据
-        check_point = data.index
+        _check_point = data.index
 
         # 调用策略
         try:
@@ -174,7 +174,7 @@ class BacktestEngine:
             # 策略执行出错
             signal = None
 
-        # 验证: 策略只使用了到 check_point 的数据
+        # 验证: 策略只使用了到 _check_point 的数据
         # (实际实现中需要更复杂的机制，如数据脱敏)
 
         return signal
@@ -350,7 +350,7 @@ class BacktestEngine:
     ) -> list[dict]:
         """
         滚动 Walk-Forward 分析
-        
+
         模拟真实市场的策略迭代过程
         """
         results = []
@@ -411,7 +411,7 @@ class BacktestEngine:
     ) -> dict:
         """
         蒙特卡洛压力测试
-        
+
         测试极端行情下的策略稳健性
         """
         results = []
@@ -439,7 +439,7 @@ class BacktestEngine:
     def validate_no_look_ahead(self) -> dict:
         """
         前视偏差验证
-        
+
         返回检测报告
         """
         return {
@@ -454,7 +454,7 @@ class BacktestEngine:
 def create_strategy(name: str):
     """
     装饰器: 创建策略 (与实盘共用)
-    
+
     示例:
         @create_strategy("ma_crossover")
         def ma_strategy(data, fast=9, slow=21):
@@ -477,13 +477,13 @@ async def run_backtest(
 ) -> dict:
     """
     便捷回测函数
-    
+
     Args:
         strategy_func: 策略函数 (与实盘共用)
         data: K线数据
         initial_capital: 初始资金
         params: 策略参数
-    
+
     Returns:
         回测结果
     """

@@ -8,7 +8,7 @@ from opentrade.agents.base import BaseAgent, MarketState
 
 class SentimentAgent(BaseAgent):
     """情绪分析 Agent
-    
+
     负责市场情绪分析，包括恐惧贪婪指数、
     社交媒体情绪、新闻情绪等。
     """

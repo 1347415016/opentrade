@@ -15,14 +15,14 @@ from opentrade.models.trade import CloseReason, Trade, TradeAction, TradeSide, T
 
 class TradeExecutor:
     """交易执行器
-    
+
     负责执行交易决策、管理仓位、
     风险控制和平仓逻辑。
     """
 
     def __init__(self, mode: str = "paper"):
         """初始化
-        
+
         Args:
             mode: paper(模拟) / live(实盘)
         """
@@ -67,7 +67,7 @@ class TradeExecutor:
         interval: int = 60,
     ):
         """启动交易循环
-        
+
         Args:
             symbols: 交易标的列表
             leverage: 杠杆倍数
@@ -215,7 +215,7 @@ class TradeExecutor:
         position_size = available * decision.size * leverage
 
         # 下单
-        order = await self.exchange.create_order(
+        _order = await self.exchange.create_order(
             symbol=decision.symbol,
             side=side,
             type="market",
@@ -248,7 +248,7 @@ class TradeExecutor:
         side = "long" if position["side"] == "long" else "short"
 
         # 市价平仓
-        order = await self.exchange.close_position(symbol, side)
+        _order = await self.exchange.close_position(symbol, side)
 
         print(f"[yellow]🔴 平仓: {symbol} ({reason.value})[/yellow]")
 

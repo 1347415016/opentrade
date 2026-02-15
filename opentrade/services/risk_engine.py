@@ -211,9 +211,9 @@ class CircuitBreakerTriggeredError(RiskControlError):
 class RiskEngine:
     """
     风控引擎 - 前置强制校验
-    
+
     所有交易订单（无论AI生成还是手动操作）必须100%经过风控校验
-    
+
     架构:
     Order → RiskEngine.pre_check() → 执行/拦截
     """
@@ -238,11 +238,11 @@ class RiskEngine:
     async def pre_check(self, decision: dict, account_info: dict = None) -> tuple[dict, bool]:
         """
         前置风控检查 (强制拦截点)
-        
+
         Args:
             decision: 交易决策
             account_info: 账户信息 (balance, positions, daily_pnl, drawdown)
-        
+
         Returns:
             (modified_decision, passed)
         """
@@ -597,7 +597,7 @@ async def check_order(decision: dict, account_info: dict = None) -> tuple[dict, 
 class HardwareEmergencyStop:
     """
     硬件级紧急停止服务
-    
+
     即使后端崩溃，也可直接调用交易所API平仓
     """
 

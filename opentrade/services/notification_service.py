@@ -10,7 +10,7 @@ from opentrade.core.config import get_config
 
 class NotificationService:
     """通知服务
-    
+
     负责发送各种通知，
     包括 Telegram、邮件、Push 等。
     """

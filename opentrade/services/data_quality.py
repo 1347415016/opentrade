@@ -67,7 +67,7 @@ class MarketDataPoint:
 class DataQualityPipeline:
     """
     数据质量校验流水线
-    
+
     三重校验:
     1. 完整性校验
     2. 一致性校验
@@ -86,7 +86,7 @@ class DataQualityPipeline:
     def validate_ohlcv(self, data: dict) -> DataValidationResult:
         """
         完整性校验
-        
+
         检查:
         - OHLCV 字段完整
         - 无 0 值 / 异常值
@@ -136,7 +136,7 @@ class DataQualityPipeline:
     ) -> DataValidationResult:
         """
         一致性校验
-        
+
         交叉验证多交易所同品种价格
         偏差超阈值触发告警
         """
@@ -164,7 +164,7 @@ class DataQualityPipeline:
     def validate_latency(self, timestamp: int, max_delay_ms: int = None) -> DataValidationResult:
         """
         延迟校验
-        
+
         行情数据延迟超阈值触发告警
         """
         result = DataValidationResult(is_valid=True)
@@ -191,7 +191,7 @@ class DataQualityPipeline:
     ) -> tuple[MarketDataPoint, DataValidationResult]:
         """
         完整校验 + 自动修正
-        
+
         Returns:
             (标准化的数据点, 校验结果)
         """
@@ -239,7 +239,7 @@ class DataQualityPipeline:
 class TimeSeriesAligner:
     """
     时间序列对齐器
-    
+
     将多源数据统一到固定时间窗口
     """
 
@@ -249,7 +249,7 @@ class TimeSeriesAligner:
     def align_timestamp(self, timestamp_ms: int) -> int:
         """
         将时间戳对齐到时间窗口
-        
+
         Example:
             timeframe = 1min (60000ms)
             12:03:45 -> 12:03:00
@@ -264,7 +264,7 @@ class TimeSeriesAligner:
     ) -> dict[int, list[dict]]:
         """
         将数据点按时间间隔分组
-        
+
         Returns:
             {aligned_timestamp: [data_points]}
         """
@@ -362,7 +362,7 @@ class DataQualityMonitor:
 class DataLakeLayer:
     """
     数据湖层 - 不可变原始数据
-    
+
     raw 层: 只读不可修改
     processed 层: 清洗、特征工程
     """
@@ -381,7 +381,7 @@ class DataLakeLayer:
     def save_raw(self, symbol: str, data: dict):
         """
         保存原始数据 (追加模式)
-        
+
         格式: {symbol}/{year}/{month}/{day}/{timestamp}.json
         """
 

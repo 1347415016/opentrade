@@ -8,7 +8,7 @@ from opentrade.agents.base import BaseAgent, MarketState
 
 class MacroAgent(BaseAgent):
     """宏观分析 Agent
-    
+
     负责宏观市场分析，包括美元指数、
     股票市场、国债收益率等。
     """

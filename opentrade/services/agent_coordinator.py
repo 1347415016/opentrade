@@ -132,7 +132,7 @@ class GraphNode:
 class LangGraphWorkflow:
     """
     LangGraph 风格工作流引擎
-    
+
     支持:
     - 并行执行无依赖的节点
     - 顺序执行有依赖的节点
@@ -160,7 +160,7 @@ class LangGraphWorkflow:
     async def execute(self, initial_state: dict) -> dict:
         """
         执行工作流
-        
+
         策略:
         1. 找到所有无依赖的节点
         2. 并行执行
@@ -174,7 +174,7 @@ class LangGraphWorkflow:
         results = {}
 
         # 执行历史 (用于循环检测)
-        execution_history = set()
+        _execution_history = set()
 
         # 最大迭代次数 (防止无限循环)
         max_iterations = 100
@@ -231,7 +231,7 @@ class LangGraphWorkflow:
 class MultiAgentCoordinator:
     """
     多Agent 协调器 (基于 LangGraph)
-    
+
     工作流:
     1. 并行阶段: 市场/链上/情绪/宏观 Agent 并行分析
     2. 辩论阶段: 多空/趋势/套利/风控 Agent 博弈
@@ -337,7 +337,7 @@ class MultiAgentCoordinator:
     async def run(self, initial_state: MarketState = None) -> dict:
         """
         运行完整工作流
-        
+
         Returns:
             {
                 "state": 最终状态,
@@ -441,7 +441,7 @@ class MultiAgentCoordinator:
 class DebateEngine:
     """
     辩论引擎
-    
+
     让不同观点的 Agent 进行博弈，输出共识
     """
 
@@ -456,11 +456,11 @@ class DebateEngine:
     async def debate(self, topic: str, initial_positions: dict) -> dict:
         """
         运行辩论
-        
+
         Args:
             topic: 辩论主题
             initial_positions: 各 Agent 的初始观点
-        
+
         Returns:
             共识结果
         """
@@ -542,7 +542,7 @@ class DebateEngine:
 def explain_decision(decision: dict, audit: dict) -> str:
     """
     生成可解释的决策报告
-    
+
     强制所有 Agent 输出结构化内容:
     - 核心观点
     - 支撑数据

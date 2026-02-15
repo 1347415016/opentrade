@@ -136,7 +136,7 @@ class Position:
 class SmartOrderRouter:
     """
     智能订单路由器
-    
+
     功能:
     1. 流动性聚合
     2. 算法执行 (TWAP/VWAP)
@@ -164,7 +164,7 @@ class SmartOrderRouter:
     async def get_best_route(self, symbol: str, quantity: float) -> dict:
         """
         获取最佳执行路由
-        
+
         Returns:
             {
                 "exchange_id": "binance",
@@ -208,7 +208,7 @@ class SmartOrderRouter:
                           duration_seconds: int = 300) -> list[Order]:
         """
         TWAP 执行
-        
+
         将大单拆分成小单，在指定时间内执行
         """
         slice_size = quantity / self.config["twap_slices"]
@@ -241,7 +241,7 @@ class SmartOrderRouter:
     async def execute_vwap(self, symbol: str, quantity: float) -> list[Order]:
         """
         VWAP 执行
-        
+
         根据历史成交量分布执行订单
         """
         # 获取 VWAP 分布
@@ -291,7 +291,7 @@ class SmartOrderRouter:
 class AntiPinController:
     """
     防插针控制器
-    
+
     功能:
     1. 检测异常波动
     2. 暂停止损止盈订单
@@ -316,7 +316,7 @@ class AntiPinController:
                                avg_volume: float) -> dict:
         """
         检查并保护
-        
+
         Returns:
             {
                 "action": "continue" / "pause" / "resume",
@@ -384,7 +384,7 @@ class AntiPinController:
 class OrderTracker:
     """
     订单全链路追踪器
-    
+
     为每笔订单生成唯一追踪 ID
     覆盖从创建、提交、成交到完结的全生命周期
     """
@@ -495,7 +495,7 @@ class OrderTracker:
 class SimulatorEnvironment:
     """
     高仿真模拟盘环境
-    
+
     1:1 模拟实盘交易规则
     - 基于历史订单簿的真实滑点模拟
     - 手续费/资金费率完全对齐
@@ -523,7 +523,7 @@ class SimulatorEnvironment:
                             timestamp: int) -> dict:
         """
         模拟订单执行
-        
+
         Returns:
             {
                 "executed": True,

@@ -15,7 +15,7 @@ from opentrade.services.trade_executor import TradeExecutor
 
 class GatewayService:
     """网关服务
-    
+
     WebSocket 控制平面，
     负责接收指令、转发消息、管理会话。
     """

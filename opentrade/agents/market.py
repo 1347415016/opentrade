@@ -8,7 +8,7 @@ from opentrade.agents.base import BaseAgent, MarketState
 
 class MarketAgent(BaseAgent):
     """市场分析 Agent
-    
+
     负责技术分析和市场状态判断，
     提供交易信号和技术面置信度。
     """
