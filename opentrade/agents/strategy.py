@@ -1,170 +1,221 @@
 """
 OpenTrade Strategy Agent - 策略分析
+
+基于价格模式和历史规律的策略信号
 """
 
+from typing import Any
 
-from opentrade.agents.base import BaseAgent, MarketState
+from opentrade.agents.base import BaseAgent
+from opentrade.agents.coordinator import (
+    AgentOutput,
+    AgentType,
+    MarketDirection,
+)
+from opentrade.agents.base import MarketState
 
 
 class StrategyAgent(BaseAgent):
-    """策略分析 Agent
-
-    负责策略绩效评估、信号生成，
-    提供基于策略规则的交易信号。
-    """
+    """策略分析 Agent"""
 
     @property
     def name(self) -> str:
-        return "strategy_agent"
+        return "StrategyAgent"
 
     @property
     def description(self) -> str:
-        return "量化策略专家，基于历史策略模式生成信号"
+        return "量化策略分析师，专注于价格模式和策略信号"
 
     async def analyze(
         self,
-        state: MarketState,
-        strategy_stats: dict = None,
-        signal_history: list = None,
-    ) -> dict:
-        """策略分析"""
+        market_state: MarketState | dict,
+    ) -> AgentOutput:
+        """分析市场状态，生成策略信号"""
+        import asyncio
+
+        if isinstance(market_state, dict):
+            from dataclasses import asdict
+            market_state = MarketState(**market_state)
+
+        await asyncio.sleep(0.01)
+
         score = 0.0
-        reasons = []
-        confidence = 0.6
+        direction = MarketDirection.NEUTRAL
+        confidence = 0.5
+        key_findings = []
+        risks = []
+        analysis = {}
 
-        # 趋势策略信号
-        trend_signal = self._analyze_trend_strategy(state)
-        score += trend_signal["score"]
-        reasons.extend(trend_signal["reasons"])
+        # 1. 趋势持续性分析
+        trend_score = self._analyze_trend_continuation(market_state)
+        analysis["trend_continuation"] = trend_score
+        score += trend_score * 0.25
 
-        # 均线策略信号
-        ma_signal = self._analyze_ma_strategy(state)
-        score += ma_signal["score"]
-        reasons.extend(ma_signal["reasons"])
+        if trend_score > 0:
+            key_findings.append("趋势持续性良好")
 
-        # 突破策略信号
-        breakout_signal = self._analyze_breakout_strategy(state)
-        score += breakout_signal["score"]
-        reasons.extend(breakout_signal["reasons"])
+        # 2. 支撑阻力分析
+        sr_score = self._analyze_support_resistance(market_state)
+        analysis["support_resistance"] = sr_score
+        score += sr_score * 0.2
 
-        # 策略历史表现
-        if strategy_stats:
-            perf_signal = self._analyze_performance(strategy_stats)
-            score += perf_signal["score"]
-            reasons.extend(perf_signal["reasons"])
-            confidence = perf_signal["confidence"]
+        # 3. 形态识别
+        pattern_score = self._analyze_patterns(market_state)
+        analysis["patterns"] = pattern_score
+        score += pattern_score * 0.2
 
-        # 标准化
-        score = max(-1, min(1, score / 3))
+        if pattern_score > 0.2:
+            key_findings.append("检测到看涨形态")
+        elif pattern_score < -0.2:
+            risks.append("检测到看跌形态")
 
-        return {
-            "signal_score": score,
-            "confidence": confidence,
-            "reasons": reasons,
-            "strategies": {
-                "trend": trend_signal["direction"],
-                "ma": ma_signal["direction"],
-                "breakout": breakout_signal["direction"],
-            },
-        }
+        # 4. 波动率分析
+        volatility_score = self._analyze_volatility(market_state)
+        analysis["volatility"] = volatility_score
+        score += volatility_score * 0.15
 
-    def _analyze_trend_strategy(self, state: MarketState) -> dict:
-        """趋势策略分析"""
-        score = 0.0
-        reasons = []
-        direction = "neutral"
+        if volatility_score < -0.2:
+            risks.append("波动率异常放大")
 
-        # 价格 vs EMA
-        if state.price > state.ema_slow and state.price > state.ema_fast:
-            score += 0.2
-            direction = "bullish"
-        elif state.price < state.ema_slow and state.price < state.ema_fast:
-            score -= 0.2
-            direction = "bearish"
+        # 5. 动量确认
+        momentum_score = self._analyze_momentum(market_state)
+        analysis["momentum"] = momentum_score
+        score += momentum_score * 0.2
 
-        # EMA 斜率 (简化为差值)
-        ema_slope = (state.ema_fast - state.ema_slow) / state.ema_slow
-        if ema_slope > 0.01:
-            score += 0.1
-            direction = "bullish"
-        elif ema_slope < -0.01:
-            score -= 0.1
-            direction = "bearish"
+        if momentum_score > 0:
+            key_findings.append("动量指标确认趋势")
 
-        return {"score": score, "reasons": reasons, "direction": direction}
+        # 综合方向
+        if score > 0.1:
+            direction = MarketDirection.BULLISH
+        elif score < -0.1:
+            direction = MarketDirection.BEARISH
 
-    def _analyze_ma_strategy(self, state: MarketState) -> dict:
-        """均线策略分析"""
-        score = 0.0
-        reasons = []
-        direction = "neutral"
+        # 置信度
+        confidence = min(0.9, 0.5 + abs(score) * 0.4)
 
-        # 价格突破均线
-        ohlcv = state.ohlcv_1h
-        if ohlcv:
-            _close = ohlcv.get("close", state.price)
-            sma_20 = (ohlcv.get("close", 0) * 19 + state.price) / 20  # 简化的 SMA
+        return AgentOutput(
+            agent_type=AgentType.STRATEGY,
+            agent_name=self.name,
+            direction=direction,
+            score=score,
+            confidence=confidence,
+            analysis=analysis,
+            key_findings=key_findings[:4],
+            risks=risks[:3],
+        )
 
-            if state.price > sma_20:
-                score += 0.15
-                reasons.append("价格站上SMA20")
+    def _analyze_trend_continuation(self, state: MarketState) -> float:
+        """趋势持续性"""
+        # 简单判断：价格与均线的相对位置
+        price = state.price
+        ema_fast = state.ema_fast
+        ema_slow = state.ema_slow
+
+        if ema_fast == 0 or ema_slow == 0:
+            return 0.0
+
+        # 检查趋势
+        if price > ema_fast > ema_slow:
+            # 上涨趋势
+            # 检查是否在回调
+            if price > ema_fast * 0.98:
+                return 0.3  # 趋势持续
             else:
-                score -= 0.15
-                reasons.append("价格跌破SMA20")
+                return 0.0  # 回调中
+        elif price < ema_fast < ema_slow:
+            # 下跌趋势
+            if price < ema_fast * 1.02:
+                return -0.3
+            else:
+                return 0.0
 
-        return {"score": score, "reasons": reasons, "direction": direction}
+        return 0.0
 
-    def _analyze_breakout_strategy(self, state: MarketState) -> dict:
-        """突破策略分析"""
-        score = 0.0
-        reasons = []
-        direction = "neutral"
+    def _analyze_support_resistance(self, state: MarketState) -> float:
+        """支撑阻力分析"""
+        price = state.price
+        bb_upper = state.bollinger_upper
+        bb_lower = state.bollinger_lower
 
-        # Bollinger Band 突破
-        if state.price > state.bollinger_upper:
-            score += 0.2
-            direction = "bullish_strong"
-            reasons.append("突破上轨")
-        elif state.price > state.bollinger_middle:
-            score += 0.1
-            direction = "bullish"
-        elif state.price < state.bollinger_lower:
-            score -= 0.2
-            direction = "bearish_strong"
-            reasons.append("跌破下轨")
-        elif state.price < state.bollinger_middle:
-            score -= 0.1
-            direction = "bearish"
+        if bb_upper == 0 or bb_lower == 0:
+            return 0.0
 
-        return {"score": score, "reasons": reasons, "direction": direction}
+        # 价格接近下轨有支撑
+        if price < bb_lower * 1.02:
+            return 0.2
+        # 价格接近上轨有压力
+        elif price > bb_upper * 0.98:
+            return -0.2
 
-    def _analyze_performance(self, stats: dict) -> dict:
-        """策略表现分析"""
-        score = 0.0
-        reasons = []
-        confidence = 0.6
+        return 0.0
 
-        win_rate = stats.get("win_rate", 0.5)
-        if win_rate > 0.6:
-            score += 0.15
-            reasons.append(f"高胜率: {win_rate:.1%}")
-            confidence += 0.1
-        elif win_rate < 0.4:
-            score -= 0.15
-            reasons.append(f"低胜率: {win_rate:.1%}")
+    def _analyze_patterns(self, state: MarketState) -> float:
+        """价格形态识别 (简化版)"""
+        # 实际项目中应该用更复杂的算法
+        # 这里用简单的价格变化模式
 
-        profit_factor = stats.get("profit_factor", 1.0)
-        if profit_factor > 1.5:
-            score += 0.1
-            reasons.append(f"高盈亏比: {profit_factor:.2f}")
+        ohlcv = state.ohlcv_1h if state.ohlcv_1h else {}
+        if not ohlcv:
+            return 0.0
 
-        sharpe = stats.get("sharpe_ratio", 0)
-        if sharpe > 1.5:
-            score += 0.1
-            reasons.append(f"高夏普: {sharpe:.2f}")
+        # 检查最近 5 根 K 线
+        closes = []
+        for candle in list(ohlcv.get("closes", []))[-5:]:
+            if isinstance(candle, (int, float)):
+                closes.append(candle)
 
-        return {
-            "score": score,
-            "reasons": reasons,
-            "confidence": min(confidence, 0.95),
-        }
+        if len(closes) < 3:
+            return 0.0
+
+        # 检查是否在学习上涨
+        if len(closes) >= 3:
+            if closes[-1] > closes[-2] > closes[-3]:
+                return 0.2  # 连续上涨
+            elif closes[-1] < closes[-2] < closes[-3]:
+                return -0.2  # 连续下跌
+
+        return 0.0
+
+    def _analyze_volatility(self, state: MarketState) -> float:
+        """波动率分析"""
+        atr = state.atr
+        price = state.price
+
+        if price == 0:
+            return 0.0
+
+        atr_pct = atr / price
+
+        # 正常波动率范围 1-5%
+        if atr_pct > 0.08:
+            return -0.3  # 波动过大
+        elif atr_pct > 0.05:
+            return -0.1  # 波动偏高
+        elif atr_pct < 0.01:
+            return 0.1  # 波动极低，可能突破
+        else:
+            return 0.1  # 正常波动
+
+    def _analyze_momentum(self, state: MarketState) -> float:
+        """动量确认"""
+        rsi = state.rsi
+        macd = state.macd - state.macd_signal  # Histogram
+
+        # RSI 确认
+        if 45 < rsi < 55:
+            rsi_confirm = 0
+        elif rsi >= 55:
+            rsi_confirm = 0.1
+        else:
+            rsi_confirm = -0.1
+
+        # MACD 确认
+        if macd > 0:
+            macd_confirm = 0.1
+        elif macd < 0:
+            macd_confirm = -0.1
+        else:
+            macd_confirm = 0
+
+        return rsi_confirm + macd_confirm

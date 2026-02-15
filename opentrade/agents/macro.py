@@ -1,100 +1,184 @@
 """
-OpenTrade Macro Agent - 宏观分析
+OpenTrade Macro Agent - 宏观数据分析
+
+分析宏观经济因素对加密市场的影响
 """
 
+from typing import Any
 
-from opentrade.agents.base import BaseAgent, MarketState
+from opentrade.agents.base import BaseAgent
+from opentrade.agents.coordinator import (
+    AgentOutput,
+    AgentType,
+    MarketDirection,
+)
+from opentrade.agents.base import MarketState
 
 
 class MacroAgent(BaseAgent):
-    """宏观分析 Agent
-
-    负责宏观市场分析，包括美元指数、
-    股票市场、国债收益率等。
-    """
+    """宏观数据分析 Agent"""
 
     @property
     def name(self) -> str:
-        return "macro_agent"
+        return "MacroAgent"
 
     @property
     def description(self) -> str:
-        return "宏观分析专家，解读宏观经济对加密市场的影响"
+        return "宏观分析师，专注于美元、美股、黄金、国债等宏观因素"
 
-    async def analyze(self, state: MarketState) -> dict:
-        """宏观分析"""
+    async def analyze(
+        self,
+        market_state: MarketState | dict,
+    ) -> AgentOutput:
+        """分析宏观环境"""
+        import asyncio
+
+        if isinstance(market_state, dict):
+            from dataclasses import asdict
+            market_state = MarketState(**market_state)
+
+        await asyncio.sleep(0.01)
+
         score = 0.0
-        reasons = []
+        direction = MarketDirection.NEUTRAL
         confidence = 0.5
-        risk_events = []
+        key_findings = []
+        risks = []
+        analysis = {}
 
-        # 美元指数 (DXY)
+        # 1. 美元指数分析
+        dxy_score = self._analyze_dxy(market_state)
+        analysis["dxy"] = dxy_score
+        score += dxy_score * 0.25
+
+        if dxy_score > 0:
+            key_findings.append(f"美元指数偏弱 ({market_state.dxy_index:.2f})")
+        elif dxy_score < 0:
+            risks.append(f"美元指数偏强 ({market_state.dxy_index:.2f})")
+
+        # 2. 美股分析
+        sp500_score = self._analyze_sp500(market_state)
+        analysis["sp500"] = sp500_score
+        score += sp500_score * 0.25
+
+        if sp500_score > 0:
+            key_findings.append(f"美股偏强 ({market_state.sp500_change:+.2f}%)")
+        elif sp500_score < 0:
+            risks.append(f"美股偏弱 ({market_state.sp500_change:+.2f}%)")
+
+        # 3. 黄金分析
+        gold_score = self._analyze_gold(market_state)
+        analysis["gold"] = gold_score
+        score += gold_score * 0.2
+
+        # 4. 美债收益率分析
+        bond_score = self._analyze_bonds(market_state)
+        analysis["bonds"] = bond_score
+        score += bond_score * 0.15
+
+        if bond_score < -0.2:
+            risks.append(f"美债收益率高企 ({market_state.bond_yield_10y:.2f}%)")
+
+        # 5. VIX 恐慌指数分析
+        vix_score = self._analyze_vix(market_state)
+        analysis["vix"] = vix_score
+        score += vix_score * 0.15
+
+        if vix_score < -0.2:
+            risks.append(f"市场恐慌指数升高 (VIX: {market_state.vix_index:.2f})")
+
+        # 综合方向
+        if score > 0.1:
+            direction = MarketDirection.BULLISH
+        elif score < -0.1:
+            direction = MarketDirection.BEARISH
+
+        # 置信度
+        confidence = min(0.75, 0.5 + abs(score) * 0.25)
+
+        return AgentOutput(
+            agent_type=AgentType.MACRO,
+            agent_name=self.name,
+            direction=direction,
+            score=score,
+            confidence=confidence,
+            analysis=analysis,
+            key_findings=key_findings[:4],
+            risks=risks[:3],
+        )
+
+    def _analyze_dxy(self, state: MarketState) -> float:
+        """美元指数分析"""
         dxy = state.dxy_index
-        if dxy > 107:
-            score -= 0.2
-            reasons.append(f"美元强势 DXY: {dxy:.1f}")
-            risk_events.append("美元超涨")
-        elif dxy > 105:
-            score -= 0.1
-            reasons.append(f"美元偏强 DXY: {dxy:.1f}")
+
+        if dxy > 105:
+            return -0.3  # 美元强势，利空风险资产
+        elif dxy > 103:
+            return -0.15
         elif dxy < 100:
-            score += 0.15
-            reasons.append(f"美元弱势 DXY: {dxy:.1f}")
+            return 0.2  # 美元弱势，利多风险资产
+        elif dxy < 102:
+            return 0.1
+        else:
+            return 0.0
 
-        # S&P 500
-        sp500 = state.sp500_change
-        if sp500 > 0.02:
-            score += 0.1
-            reasons.append(f"风险情绪回暖 S&P: {sp500:+.2%}")
-        elif sp500 < -0.02:
-            score -= 0.15
-            reasons.append(f"风险情绪恶化 S&P: {sp500:+.2%}")
-            risk_events.append("股市下跌")
+    def _analyze_sp500(self, state: MarketState) -> float:
+        """美股分析"""
+        change = state.sp500_change
 
-        # 黄金
-        gold = state.gold_price
-        gold_change = (gold - 2000) / 2000  # 简化的变化率
-        if gold_change > 0.1:
-            score += 0.1
-            reasons.append("黄金上涨避险")
+        if change > 2:
+            return 0.3  # 大涨
+        elif change > 1:
+            return 0.2
+        elif change > 0:
+            return 0.1
+        elif change < -2:
+            return -0.3  # 大跌
+        elif change < -1:
+            return -0.2
+        elif change < 0:
+            return -0.1
+        else:
+            return 0.0
 
-        # 美债收益率
-        bond_yield = state.bond_yield_10y
-        if bond_yield > 4.5:
-            score -= 0.15
-            reasons.append(f"高收益率 {bond_yield:.2f}% 压力")
-            risk_events.append("收益率飙升")
-        elif bond_yield < 3.5:
-            score += 0.05
+    def _analyze_gold(self, state: MarketState) -> float:
+        """黄金分析"""
+        # 黄金与比特币有一定的正相关性（都是抗通胀资产）
+        change = (state.gold_price - 2000) / 2000 if state.gold_price > 0 else 0
 
-        # VIX
+        if change > 0.05:
+            return 0.15
+        elif change < -0.05:
+            return -0.1
+        else:
+            return 0.0
+
+    def _analyze_bonds(self, state: MarketState) -> float:
+        """美债收益率分析"""
+        yield_10y = state.bond_yield_10y
+
+        # 高收益率 = 资金回流债市 = 利空风险资产
+        if yield_10y > 5.0:
+            return -0.3
+        elif yield_10y > 4.5:
+            return -0.2
+        elif yield_10y > 4.0:
+            return -0.1
+        elif yield_10y < 3.5:
+            return 0.1
+        else:
+            return 0.0
+
+    def _analyze_vix(self, state: MarketState) -> float:
+        """VIX 分析"""
         vix = state.vix_index
-        if vix > 25:
-            score -= 0.15
-            reasons.append(f"市场恐慌 VIX: {vix:.1f}")
-            risk_events.append("波动率飙升")
+
+        # VIX 低 = 市场平静，VIX 高 = 市场恐慌
+        if vix > 30:
+            return -0.3  # 市场恐慌
+        elif vix > 25:
+            return -0.15
         elif vix < 15:
-            score += 0.05
-
-        # 宏观风险评估
-        macro_risk_score = len(risk_events) * 0.2
-        if macro_risk_score > 0.5:
-            score -= 0.2
-            reasons.append(f"宏观风险累积: {len(risk_events)}个事件")
-
-        # 标准化
-        score = max(-1, min(1, score / 4))
-
-        return {
-            "signal_score": score,
-            "confidence": confidence,
-            "reasons": reasons,
-            "risk_events": risk_events,
-            "indicators": {
-                "dxy": dxy,
-                "sp500": sp500,
-                "gold": gold,
-                "bond_yield": bond_yield,
-                "vix": vix,
-            },
-        }
+            return 0.1  # 市场平静
+        else:
+            return 0.0
