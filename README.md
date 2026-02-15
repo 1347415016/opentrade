@@ -77,10 +77,10 @@ opentrade init
 opentrade gateway
 
 # 4. 新开终端，启动模拟交易（无资金风险，优先验证策略）
-opentrade trade --mode paper
+opentrade trade paper
 
 # 5. 模拟盘验证通过后，启动实盘交易
-opentrade trade --mode live
+opentrade trade live
 ```
 
 ### 方式二：Docker 一键部署（推荐生产使用）
@@ -160,41 +160,42 @@ opentrade/
 # 初始化配置
 opentrade init
 
-# 网关服务管理
-opentrade gateway start    # 后台启动网关
-opentrade gateway stop     # 停止网关服务
-opentrade gateway status   # 查看运行状态
+# 启动网关服务
+opentrade gateway                # 前台启动
+opentrade gateway --daemon       # 后台启动
+opentrade gateway --port 18790   # 指定端口
 
 # 交易启动
-opentrade trade --mode paper   # 启动模拟交易
-opentrade trade --mode live    # 启动实盘交易
-opentrade trade --stop         # 停止交易
+opentrade trade paper            # 启动模拟交易
+opentrade trade live             # 启动实盘交易
+opentrade trade paper --strategy trend --symbol BTC/USDT  # 指定策略和标的
 
 # 策略回测
-opentrade backtest --data 2024-01-01:2024-12-31
+opentrade backtest 2024-01-01 2024-12-31 --strategy trend_following
 
 # 系统诊断
-opentrade doctor           # 健康检查
-opentrade doctor --fix     # 自动修复
+opentrade doctor                 # 健康检查
+opentrade doctor --fix           # 自动修复
 ```
 
 ### 进阶管理命令
 
 ```bash
 # 策略管理
-opentrade strategy list    # 列出所有策略
-opentrade strategy use trend_v2  # 切换策略
+opentrade strategy list          # 列出所有策略
 
 # 插件管理
-opentrade plugin list      # 列出插件
-opentrade plugin install <name>  # 安装插件
+opentrade plugin list            # 列出插件
+opentrade plugin install <name>   # 安装插件
 
 # 配置管理
-opentrade config show      # 查看配置
-opentrade config edit      # 编辑配置
+opentrade config show            # 查看配置
+opentrade config edit            # 编辑配置
+opentrade config reset           # 重置配置
 
-# 数据管理
-opentrade data collect --source binance --symbol BTC/USDT
+# 版本与更新
+opentrade --version              # 查看版本
+opentrade update                 # 检查更新
 ```
 
 ---
