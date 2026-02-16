@@ -10,6 +10,7 @@ from opentrade.agents.base import (
     TradeDecision,
 )
 from opentrade.agents.coordinator import AgentCoordinator
+from opentrade.agents.graph import create_trading_graph, get_trading_graph, run_graph
 from opentrade.agents.macro import MacroAgent
 from opentrade.agents.market import MarketAgent
 from opentrade.agents.onchain import OnchainAgent
@@ -32,4 +33,8 @@ __all__ = [
     "OnchainAgent",
     "SentimentAgent",
     "MacroAgent",
+    # Graph
+    "create_trading_graph",
+    "get_trading_graph",
+    "run_graph",
 ]

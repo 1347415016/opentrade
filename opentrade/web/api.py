@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 from rich import print
 
 from opentrade.core.config import get_config
+from opentrade.core.store import store
 
 
 # ============ WebSocket 连接管理 ============
@@ -34,11 +35,19 @@ class ConnectionManager:
             self.active_connections.remove(websocket)
 
     async def broadcast(self, message: dict):
+        """广播消息到所有连接"""
         for connection in self.active_connections:
             try:
                 await connection.send_json(message)
             except Exception:
                 self.disconnect(connection)
+
+    async def send_personal(self, websocket: WebSocket, message: dict):
+        """发送消息到单个连接"""
+        try:
+            await websocket.send_json(message)
+        except Exception:
+            self.disconnect(websocket)
 
 
 manager = ConnectionManager()
@@ -97,6 +106,22 @@ class BalanceResponse(BaseModel):
     positions_value: float
 
 
+class StrategyResponse(BaseModel):
+    """策略响应"""
+    id: str
+    name: str
+    status: str
+    enabled: bool
+    config: dict
+
+
+class EventResponse(BaseModel):
+    """事件响应"""
+    type: str
+    data: dict
+    timestamp: str
+
+
 # ============ FastAPI App ============
 
 @asynccontextmanager
@@ -152,13 +177,12 @@ async def health_check():
 @app.get("/api/v1/status")
 async def get_status():
     """获取系统状态"""
-    from opentrade.core.database import check_connection
-
-    db_status = "connected" if check_connection() else "disconnected"
-
+    balance = store.get_balance()
     return {
         "status": "running",
-        "database": db_status,
+        "balance": balance,
+        "orders_count": len(store.get_orders()),
+        "positions_count": len(store.get_positions()),
         "timestamp": datetime.utcnow().isoformat(),
     }
 
@@ -184,6 +208,19 @@ async def create_order(order: OrderRequest):
     gateway = OrderGateway(None, config)  # 无交易所 (模拟)
     try:
         result = await gateway.submit(order_req)
+        
+        # 保存到存储
+        store.create_order({
+            "id": result.id,
+            "symbol": result.symbol,
+            "side": result.side.value,
+            "status": result.status.value,
+            "size": result.size,
+            "filled_size": result.filled_size,
+            "average_price": result.average_price,
+            "created_at": result.created_at.isoformat(),
+        })
+        
         return {
             "id": result.id,
             "symbol": result.symbol,
@@ -201,44 +238,61 @@ async def create_order(order: OrderRequest):
 @app.get("/api/v1/orders")
 async def get_orders(symbol: Optional[str] = None):
     """获取订单列表"""
-    from opentrade.core.gateway import OrderGateway
+    orders = store.get_orders(symbol=symbol)
+    return {"orders": orders}
 
-    gateway = OrderGateway(None)
-    orders = gateway.get_orders(symbol=symbol)
-    return {"orders": [o.model_dump() for o in orders]}
+
+@app.get("/api/v1/orders/{order_id}")
+async def get_order(order_id: str):
+    """获取单个订单"""
+    order = store.get_order(order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+
+@app.post("/api/v1/orders/{order_id}/cancel")
+async def cancel_order(order_id: str):
+    """取消订单"""
+    order = store.get_order(order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    store.cancel_order(order_id)
+    return {"status": "cancelled", "order_id": order_id}
 
 
 @app.get("/api/v1/positions")
 async def get_positions():
     """获取当前持仓"""
-    return {"positions": []}
+    positions = store.get_positions()
+    return {"positions": positions}
 
 
 @app.get("/api/v1/balance", response_model=BalanceResponse)
 async def get_balance():
     """获取账户余额"""
-    return BalanceResponse(
-        total_equity=0.0,
-        available=0.0,
-        positions_value=0.0,
-    )
+    balance = store.get_balance()
+    return BalanceResponse(**balance)
 
 
 @app.get("/api/v1/strategies")
 async def get_strategies():
     """获取策略列表"""
-    return {"strategies": []}
+    strategies = store.get_strategies()
+    return {"strategies": strategies}
 
 
 @app.post("/api/v1/strategies/{strategy_id}/enable")
 async def enable_strategy(strategy_id: str):
     """启用策略"""
+    store.set_strategy_status(strategy_id, "active")
     return {"status": "enabled", "strategy_id": strategy_id}
 
 
 @app.post("/api/v1/strategies/{strategy_id}/disable")
 async def disable_strategy(strategy_id: str):
     """禁用策略"""
+    store.set_strategy_status(strategy_id, "disabled")
     return {"status": "disabled", "strategy_id": strategy_id}
 
 
@@ -246,27 +300,108 @@ async def disable_strategy(strategy_id: str):
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket 实时数据"""
+    """WebSocket 实时数据 - 主频道"""
     await manager.connect(websocket)
     try:
+        # 发送欢迎消息
+        await manager.send_personal(websocket, {
+            "type": "connected",
+            "message": "Connected to OpenTrade WebSocket",
+            "timestamp": datetime.utcnow().isoformat(),
+        })
+        
         while True:
             data = await websocket.receive_text()
-            # 处理消息
-            await websocket.send_json({"echo": data})
+            # 解析消息
+            try:
+                import json
+                msg = json.loads(data)
+                msg_type = msg.get("type", "unknown")
+                
+                if msg_type == "ping":
+                    await manager.send_personal(websocket, {"type": "pong"})
+                elif msg_type == "subscribe":
+                    # 订阅事件
+                    channel = msg.get("channel")
+                    await manager.send_personal(websocket, {
+                        "type": "subscribed",
+                        "channel": channel,
+                    })
+                else:
+                    # 回显其他消息
+                    await manager.send_personal(websocket, {
+                        "type": "echo",
+                        "original": msg,
+                        "timestamp": datetime.utcnow().isoformat(),
+                    })
+            except json.JSONDecodeError:
+                await manager.send_personal(websocket, {
+                    "type": "error",
+                    "message": "Invalid JSON",
+                })
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
 
 @app.websocket("/ws/orders")
 async def websocket_orders(websocket: WebSocket):
-    """订单状态 WebSocket"""
+    """订单状态 WebSocket - 实时推送订单更新"""
     await manager.connect(websocket)
     try:
+        # 发送当前订单列表
+        orders = store.get_orders()
+        await manager.send_personal(websocket, {
+            "type": "orders_sync",
+            "orders": orders,
+        })
+        
         while True:
             data = await websocket.receive_text()
-            await websocket.send_json({"type": "order_update", "data": data})
+            try:
+                import json
+                msg = json.loads(data)
+                
+                if msg.get("type") == "ping":
+                    await manager.send_personal(websocket, {"type": "pong"})
+                    
+            except json.JSONDecodeError:
+                pass
+                
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+
+@app.websocket("/ws/events")
+async def websocket_events(websocket: WebSocket):
+    """事件 WebSocket - 推送系统事件"""
+    await manager.connect(websocket)
+    try:
+        # 发送最近事件
+        events = store.get_events()
+        await manager.send_personal(websocket, {
+            "type": "events_sync",
+            "events": events,
+        })
+        
+        while True:
+            data = await websocket.receive_text()
+            if data == "ping":
+                await manager.send_personal(websocket, {"type": "pong"})
+                
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
+
+# ============ 事件广播辅助函数 ============
+
+def broadcast_event(event_type: str, data: dict):
+    """广播事件到所有 WebSocket 连接"""
+    import asyncio
+    asyncio.create_task(manager.broadcast({
+        "type": event_type,
+        "data": data,
+        "timestamp": datetime.utcnow().isoformat(),
+    }))
 
 
 # ============ 错误处理 ============
