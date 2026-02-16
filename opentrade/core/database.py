@@ -10,7 +10,11 @@ OpenTrade Database - PostgreSQL + TimescaleDB
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Optional
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, MetaData
+from sqlalchemy.orm import declarative_base
+
+Base = declarative_base()
+metadata = MetaData()
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import sessionmaker, Session
 
@@ -151,3 +155,7 @@ async def check_async_connection() -> bool:
     except Exception as e:
         print(f"[Database] ❌ 异步连接失败: {e}")
         return False
+
+
+# 占位符 - 需要在初始化时设置
+db = None

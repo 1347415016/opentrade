@@ -3,7 +3,7 @@ name = "opentrade"
 description = "OpenTrade - Open Source AI Trading System"
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 authors = [
     {name = "OpenTrade Contributors", email = "contributors@opentrade.ai"}
 ]
@@ -59,16 +59,16 @@ dependencies = [
     "polars>=1.0.0",
 
     # 机器学习
-    "torch>=2.1.0; platform_system != 'Windows' or python_version < '3.12'",
+    "torch>=2.1.0",
     "scikit-learn>=1.4.0",
     "xgboost>=2.0.0",
     "lightgbm>=4.0.0",
     "optuna>=3.5.0",
     "ray[tune]>=2.9.0",
 
-    # 技术指标
-    "ta-lib-python>=0.4.25; platform_system != 'Windows'",
-    "pandas-ta>=0.3.14b",
+    # 技术指标 (可选，需要系统库 libta-lib)
+    "ta-lib>=0.4.0; platform_system != 'Windows'",
+    "pandas-ta>=0.3.14",
 
     # 数据库
     "sqlalchemy[asyncio]>=2.0.25",
@@ -209,24 +209,12 @@ Changelog = "https://github.com/1347415016/opentrade/blob/main/CHANGELOG.md"
 Discord = "https://discord.gg/opentrade"
 Docs = "https://docs.opentrade.ai"
 
-[project.entry-points]
-opentrade.plugins.trend_following = "opentrade.strategies.trend_following:TrendFollowingStrategy"
-opentrade.plugins.mean_reversion = "opentrade.strategies.mean_reversion:MeanReversionStrategy"
-opentrade.plugins.grid_trading = "opentrade.strategies.grid_trading:GridTradingStrategy"
-opentrade.plugins.scalping = "opentrade.strategies.scalping:ScalpingStrategy"
-
-opentrade.data_sources.ccxt = "opentrade.data_sources.ccxt:CCXTDataSource"
-opentrade.data_sources.glassnode = "opentrade.data_sources.glassnode:GlassnodeDataSource"
-opentrade.data_sources.fred = "opentrade.data_sources.fred:FREDDataSource"
-
-opentrade.notifiers.telegram = "opentrade.notifiers.telegram:TelegramNotifier"
-opentrade.notifiers.log = "opentrade.notifiers.log:LogNotifier"
 [build-system]
 requires = ["setuptools>=69.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["opentrade", "opentrade.cli", "opentrade.core", "opentrade.agents", "opentrade.services", "opentrade.models", "opentrade.ml", "opentrade.plugins", "opentrade.strategies", "opentrade.data_sources", "opentrade.notifiers"]
+packages = ["opentrade", "opentrade.cli", "opentrade.core", "opentrade.agents", "opentrade.services", "opentrade.models", "opentrade.plugins", "opentrade.strategies", "opentrade.data_sources", "opentrade.notifiers"]
 package-dir = {"opentrade" = "opentrade"}
 include-package-data = true
 

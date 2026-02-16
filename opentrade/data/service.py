@@ -144,10 +144,10 @@ class OrderRecord:
 @dataclass
 class BalanceRecord:
     """余额记录"""
-    timestamp: datetime = field(default_factory=datetime.utcnow)
     total: float
     available: float
     margin: float
+    timestamp: datetime = field(default_factory=datetime.utcnow)
     unrealized_pnl: float = 0.0
     balances: dict[str, float] = field(default_factory=dict)
 
