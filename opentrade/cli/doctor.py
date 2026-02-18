@@ -76,6 +76,65 @@ class Doctor:
 
         return result
 
+    def check_environment_compatibility(self) -> dict:
+        """检查环境兼容性"""
+        import platform
+        import os
+        import subprocess
+
+        checks = []
+        system = platform.system()
+        arch = platform.machine()
+
+        # 操作系统检查
+        supported_systems = {"Linux", "Darwin", "Windows"}
+        if system not in supported_systems:
+            checks.append(f"⚠️ 未验证的操作系统: {system}")
+
+        # 内存检查
+        try:
+            import psutil
+            vm = psutil.virtual_memory()
+            total_gb = vm.total / (1024**3)
+            if total_gb < 2:
+                checks.append(f"⚠️ 内存不足: {total_gb:.1f}GB (建议 4GB+)")
+        except ImportError:
+            checks.append("ℹ️ 建议安装 psutil 用于内存监控")
+
+        # 磁盘空间检查
+        try:
+            stat = os.statvfs("/root")
+            free_gb = (stat.f_bavail * stat.f_frsize) / (1024**3)
+            if free_gb < 5:
+                checks.append(f"⚠️ 磁盘空间不足: {free_gb:.1f}GB (建议 10GB+)")
+        except Exception:
+            pass
+
+        # Docker 检查
+        try:
+            result = subprocess.run(
+                ["docker", "--version"],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                checks.append("✅ Docker 可用")
+        except FileNotFoundError:
+            checks.append("ℹ️ Docker 未安装 (可选)")
+
+        if checks:
+            return {
+                "name": "环境兼容性",
+                "status": "⚠️" if any("⚠️" in c for c in checks) else "✅",
+                "message": " | ".join(checks),
+            }
+
+        return {
+            "name": "环境兼容性",
+            "status": "✅",
+            "message": f"{system} {arch} - 兼容",
+        }
+
     def check_dependencies(self) -> dict:
         """检查依赖包"""
         import subprocess
@@ -350,6 +409,7 @@ class Doctor:
 
         # 基础检查
         self.check("Python 版本", self.check_python_version)
+        self.check("环境兼容性", self.check_environment_compatibility)
         self.check("依赖包", self.check_dependencies)
         self.check("配置文件", self.check_config)
 

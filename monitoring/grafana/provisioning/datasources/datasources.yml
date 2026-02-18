@@ -1,0 +1,23 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    uid: opentrade-prometheus
+    editable: false
+    
+  - name: PostgreSQL
+    type: postgres
+    url: opentrade-timescaledb:5432
+    database: opentrade
+    user: opentrade
+    secureJsonData:
+      password: password
+    jsonData:
+      sslmode: disable
+      database: opentrade
+      timescaledb: true
+    editable: false

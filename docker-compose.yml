@@ -1,64 +1,142 @@
 version: '3.8'
 
+# OpenTrade Docker Compose - 生产部署配置
+# 包含数据持久化、资源限制、健康检查
+
 services:
+  # ============ 主服务 ============
   opentrade:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: opentrade
     restart: unless-stopped
+    stop_grace_period: 30s
     ports:
       - "8000:8000"      # API 服务
       - "18790:18790"    # WebSocket 网关
     environment:
       - OPENTRADE_MODE=${OPENTRADE_MODE:-paper}
+      # 使用服务名作为主机名
       - OPENTRADE_DB_URL=postgresql+asyncpg://opentrade:password@timescaledb:5432/opentrade
       - OPENTRADE_REDIS_URL=redis://redis:6379/0
       - OPENTRADE_QDRANT_URL=http://qdrant:6333
+      # 时区
+      - TZ=UTC
     volumes:
+      # 配置文件 (只读)
       - ./config.yaml:/root/.opentrade/config.yaml:ro
-      - ./data:/root/.opentrade/data
+      # 数据目录
+      - opentrade-data:/root/.opentrade/data
+      # 日志目录
+      - opentrade-logs:/root/.opentrade/logs
+      # 备份目录
+      - opentrade-backups:/root/.opentrade/backups
+    environment:
+      - OPENTRADE_DATA_DIR=/root/.opentrade/data
+      - OPENTRADE_LOG_DIR=/root/.opentrade/logs
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     depends_on:
-      - timescaledb
-      - redis
-      - qdrant
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
     networks:
       - opentrade-net
+    # 资源限制 (旧版兼容)
+    mem_limit: 2g
+    cpu_shares: 512
 
-  # TimescaleDB (时序数据库)
+  # ============ TimescaleDB (时序数据库) ============
   timescaledb:
     image: timescale/timescaledb:latest-pg15
     container_name: opentrade-timescaledb
     restart: unless-stopped
+    stop_grace_period: 30s
     environment:
       - POSTGRES_USER=opentrade
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=opentrade
+      - TZ=UTC
     volumes:
       - timescaledb-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    networks:
-      - opentrade-net
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+    # 健康检查
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opentrade -d opentrade"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     command: >
       postgres
       -c shared_preload_libraries=timescaledb
       -c max_connections=100
+      -c work_mem=256MB
+      -c maintenance_work_mem=512MB
+      -c effective_cache_size=2GB
+    networks:
+      - opentrade-net
+    mem_limit: 4g
 
-  # Redis (缓存/会话)
+  # ============ Redis (缓存/会话) ============
   redis:
     image: redis:7-alpine
     container_name: opentrade-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
     volumes:
       - redis-data:/data
     ports:
       - "6379:6379"
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - opentrade-net
+    mem_limit: 512m
+    cpu_shares: 256
 
-  # Qdrant (向量数据库 - 策略经验存储)
+  # ============ Qdrant (向量数据库) ============
   qdrant:
     image: qdrant/qdrant:latest
     container_name: opentrade-qdrant
@@ -67,10 +145,28 @@ services:
       - qdrant-data:/qdrant/storage
     ports:
       - "6333:6333"
+      - "6334:6334"
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/collections"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - opentrade-net
+    mem_limit: 1g
+    cpu_shares: 512
 
-  # pgAdmin (数据库管理)
+  # ============ pgAdmin (可选 - 数据库管理) ============
   pgadmin:
     image: dpage/pgadmin8:latest
     container_name: opentrade-pgadmin
@@ -78,16 +174,28 @@ services:
     environment:
       - PGADMIN_DEFAULT_EMAIL=admin@opentrade.local
       - PGADMIN_DEFAULT_PASSWORD=password
+      - TZ=UTC
     ports:
       - "5050:80"
     volumes:
       - pgadmin-data:/var/lib/pgadmin
+      - pgadmin-sessions:/pgadmin/sessions
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
     depends_on:
       - timescaledb
     networks:
       - opentrade-net
+    mem_limit: 512m
 
-  # Frontend (可选 - Next.js Web 面板)
+  # ============ Frontend (Next.js Web 面板) ============
   frontend:
     build:
       context: ./frontend
@@ -98,17 +206,97 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://opentrade:8000
+      - TZ=UTC
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     depends_on:
       - opentrade
     networks:
       - opentrade-net
+    mem_limit: 512m
 
+  # ============ Prometheus (监控指标收集) ============
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: opentrade-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    networks:
+      - opentrade-net
+
+  # ============ Grafana (监控面板) ============
+  grafana:
+    image: grafana/grafana:latest
+    container_name: opentrade-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=password
+      - TZ=UTC
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - opentrade-net
+
+# ============ 数据持久化 ============
 volumes:
+  # OpenTrade 数据
+  opentrade-data:
+    driver: local
+  opentrade-logs:
+    driver: local
+  opentrade-backups:
+    driver: local
+  
+  # 数据库数据
   timescaledb-data:
+    driver: local
   redis-data:
+    driver: local
   qdrant-data:
+    driver: local
+  
+  # 管理工具数据
   pgadmin-data:
+    driver: local
+  pgadmin-sessions:
+    driver: local
+  
+  # 监控数据
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
 
 networks:
   opentrade-net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
