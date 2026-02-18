@@ -15,6 +15,7 @@ class ExchangeConfig(BaseModel):
     name: str = "binance"
     api_key: str | None = None
     api_secret: str | None = None
+    wallet_address: str | None = None  # For Hyperliquid
     testnet: bool = False
     passphrase: str | None = None  # For exchanges like KuCoin
 

@@ -118,11 +118,12 @@ class DataService:
     def _format_symbol_for_exchange(self, symbol: str, exchange_id: str) -> str:
         """格式化交易对以适应不同交易所"""
         # 移除标准后缀
-        base_symbol = symbol.replace("/USDT", "").replace("/USD", "").replace("-USD", "")
+        base_symbol = symbol.replace("/USDT", "").replace("/USD", "").replace("-USD", "").replace("/USDC", "")
 
         if exchange_id == "hyperliquid":
-            # Hyperliquid 使用 H: 前缀
-            return f"H:{base_symbol}"
+            # Hyperliquid 使用 BTC/USDC 或 BTC/USDH 格式
+            # 优先使用 USDC
+            return f"{base_symbol}/USDC"
         elif exchange_id in ["binance", "bybit", "okx"]:
             # 这些交易所使用 BTC/USDT 格式
             return f"{base_symbol}/USDT"
@@ -169,6 +170,21 @@ class DataService:
             }
         except Exception:
             return {"rate": 0, "nextTime": None}
+
+    async def fetch_balance(self) -> dict:
+        """获取账户余额"""
+        exchange = await self._get_exchange()
+        params = self._get_user_params()
+        try:
+            balance = await exchange.fetch_balance(params=params)
+            return {
+                "total": balance.get("total", {}),
+                "free": balance.get("free", {}),
+                "used": balance.get("used", {}),
+            }
+        except Exception as e:
+            print(f"获取余额失败: {e}")
+            return {"total": {}, "free": {}, "used": {}}
 
     async def fetch_onchain_data(self, symbol: str) -> dict:
         """获取链上数据 (模拟，实际需要区块链 API)"""
@@ -279,12 +295,24 @@ class DataService:
         """获取交易所实例"""
         if self.config.exchange.name not in self._exchanges:
             exchange_class = getattr(ccxt, self.config.exchange.name)
-            self._exchanges[self.config.exchange.name] = exchange_class({
+            
+            # Hyperliquid 需要额外的 wallet 参数
+            options = {
                 "apiKey": self.config.exchange.api_key,
-                "secret": self.config.exchange.api_secret,
                 "enableRateLimit": True,
-            })
+            }
+            
+            if self.config.exchange.name == "hyperliquid":
+                options["wallet"] = self.config.exchange.wallet_address
+            
+            self._exchanges[self.config.exchange.name] = exchange_class(options)
         return self._exchanges[self.config.exchange.name]
+
+    def _get_user_params(self) -> dict:
+        """获取用户参数（用于 Hyperliquid API）"""
+        if self.config.exchange.name == "hyperliquid":
+            return {"user": self.config.exchange.wallet_address}
+        return {}
 
     async def close(self):
         """关闭所有交易所连接"""

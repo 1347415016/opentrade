@@ -1,0 +1,125 @@
+[
+  {
+    "date": "2026-02-13",
+    "event_type": "price_consolidation",
+    "title": "BTC在$66K附近震荡",
+    "description": "BTC失守$66K支撑，连续第4周收跌",
+    "impact": "medium",
+    "price_before": 68000,
+    "price_after": 66000,
+    "change_pct": -2.9,
+    "source": "market_data",
+    "tags": [
+      "震荡",
+      "支撑",
+      "筑底"
+    ],
+    "lessons": [
+      "震荡行情适合高抛低吸",
+      "突破区间后顺势操作"
+    ]
+  },
+  {
+    "date": "2026-02-13",
+    "event_type": "price_consolidation",
+    "title": "BTC在$66K附近震荡",
+    "description": "BTC失守$66K支撑，连续第4周收跌",
+    "impact": "medium",
+    "price_before": 68000,
+    "price_after": 66000,
+    "change_pct": -2.9,
+    "source": "market_data",
+    "tags": [
+      "震荡",
+      "支撑",
+      "筑底"
+    ],
+    "lessons": [
+      "震荡行情适合高抛低吸",
+      "突破区间后顺势操作"
+    ]
+  },
+  {
+    "date": "2026-02-13",
+    "event_type": "price_consolidation",
+    "title": "BTC在$66K附近震荡",
+    "description": "BTC失守$66K支撑，连续第4周收跌",
+    "impact": "medium",
+    "price_before": 68000,
+    "price_after": 66000,
+    "change_pct": -2.9,
+    "source": "market_data",
+    "tags": [
+      "震荡",
+      "支撑",
+      "筑底"
+    ],
+    "lessons": [
+      "震荡行情适合高抛低吸",
+      "突破区间后顺势操作"
+    ]
+  },
+  {
+    "date": "2026-02-05",
+    "event_type": "market_crash",
+    "title": "加密货币黑色周末",
+    "description": "BTC单日暴跌14%，从$73K跌至$60K",
+    "impact": "high",
+    "price_before": 73000,
+    "price_after": 60000,
+    "change_pct": -17.8,
+    "source": "market_data",
+    "tags": [
+      "暴跌",
+      "恐慌",
+      "清算"
+    ],
+    "lessons": [
+      "极端行情下杠杆风险极高",
+      "设置止损是必要的",
+      "恐惧指数低于10可能是买入信号"
+    ]
+  },
+  {
+    "date": "2026-02-05",
+    "event_type": "market_crash",
+    "title": "加密货币黑色周末",
+    "description": "BTC单日暴跌14%，从$73K跌至$60K",
+    "impact": "high",
+    "price_before": 73000,
+    "price_after": 60000,
+    "change_pct": -17.8,
+    "source": "market_data",
+    "tags": [
+      "暴跌",
+      "恐慌",
+      "清算"
+    ],
+    "lessons": [
+      "极端行情下杠杆风险极高",
+      "设置止损是必要的",
+      "恐惧指数低于10可能是买入信号"
+    ]
+  },
+  {
+    "date": "2026-02-05",
+    "event_type": "market_crash",
+    "title": "加密货币黑色周末",
+    "description": "BTC单日暴跌14%，从$73K跌至$60K",
+    "impact": "high",
+    "price_before": 73000,
+    "price_after": 60000,
+    "change_pct": -17.8,
+    "source": "market_data",
+    "tags": [
+      "暴跌",
+      "恐慌",
+      "清算"
+    ],
+    "lessons": [
+      "极端行情下杠杆风险极高",
+      "设置止损是必要的",
+      "恐惧指数低于10可能是买入信号"
+    ]
+  }
+]
