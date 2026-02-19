@@ -230,7 +230,7 @@ class GatewayService:
         }
         await self._event_queue.put(event)
 
-    async def _handle_websocket(self, websocket: WebSocket):    async def _handle_websocket(self, websocket: WebSocket):
+    async def _handle_websocket(self, websocket: WebSocket):
         """处理 WebSocket 连接"""
         await websocket.accept()
 

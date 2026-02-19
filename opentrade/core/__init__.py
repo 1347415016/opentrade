@@ -2,12 +2,13 @@
 OpenTrade 核心模块
 """
 from opentrade.core.config import (
-    Config,
+    OpenTradeConfig,
+    ConfigManager,
     ExchangeConfig,
     AIConfig,
     RiskConfig,
-    load_config,
-    save_config,
+    get_config,
+    settings,
 )
 
 from opentrade.core.encryption import (
@@ -47,12 +48,13 @@ from opentrade.core.network import (
 
 __all__ = [
     # Config
-    "Config",
+    "OpenTradeConfig",
+    "ConfigManager",
     "ExchangeConfig",
     "AIConfig",
     "RiskConfig",
-    "load_config",
-    "save_config",
+    "get_config",
+    "settings",
     # Encryption
     "encrypt_api_key",
     "decrypt_api_key",
